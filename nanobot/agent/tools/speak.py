@@ -98,7 +98,8 @@ class SpeakTool(Tool):
             return "Error: TTS sending not configured"
 
         selected_voice = voice or self._voice
-        ext = f".{self._response_format}"
+        # Kokoro's "opus" format returns OGG/Opus, which we save as .ogg for Telegram's send_voice
+        ext = ".ogg" if self._response_format == "opus" else f".{self._response_format}"
         media_dir = get_media_dir("telegram")
         file_path = media_dir / f"tts_{uuid.uuid4().hex}{ext}"
 

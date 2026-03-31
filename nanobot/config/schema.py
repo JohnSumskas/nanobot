@@ -137,7 +137,7 @@ class TTSConfig(Base):
     url: str = "http://localhost:8880"
     voice: str = "af_bella"
     model: str = "kokoro"
-    response_format: str = "ogg"
+    response_format: str = "opus"
 
 
 class MCPServerConfig(Base):
