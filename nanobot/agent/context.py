@@ -100,14 +100,26 @@ Your workspace is at: {workspace_path}
 Reply directly with text for conversations. Only use the 'message' tool to send to a specific chat channel.
 IMPORTANT: To send files (images, documents, audio, video) to the user, you MUST call the 'message' tool with the 'media' parameter. Do NOT use read_file to "send" a file — reading a file only shows its content to you, it does NOT deliver the file to the user. Example: message(content="Here is the file", media=["/path/to/file.png"])"""
 
-    @staticmethod
     def _build_runtime_context(
-        channel: str | None, chat_id: str | None, timezone: str | None = None,
+        self, channel: str | None, chat_id: str | None, timezone: str | None = None,
     ) -> str:
         """Build untrusted runtime metadata block for injection before the user message."""
         lines = [f"Current Time: {current_time_str(timezone)}"]
         if channel and chat_id:
             lines += [f"Channel: {channel}", f"Chat ID: {chat_id}"]
+        
+        # Check for config restoration marker and include alert
+        marker_path = self.workspace / ".config_restored"
+        if marker_path.exists():
+            lines.append("")
+            lines.append("⚠️ IMPORTANT: Config was corrupted on startup and was restored from backup!")
+            lines.append("Please notify the user about this immediately.")
+            # Remove marker after reading so we only notify once
+            try:
+                marker_path.unlink()
+            except OSError:
+                pass
+        
         return ContextBuilder._RUNTIME_CONTEXT_TAG + "\n" + "\n".join(lines)
 
     def _load_bootstrap_files(self) -> str:
