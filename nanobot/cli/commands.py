@@ -562,6 +562,7 @@ def gateway(
         mcp_servers=config.tools.mcp_servers,
         channels_config=config.channels,
         timezone=config.agents.defaults.timezone,
+        tts_config=config.tools.tts,
     )
 
     # Set cron callback (needs agent)
