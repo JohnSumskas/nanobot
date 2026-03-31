@@ -444,7 +444,7 @@ def _make_provider(config: Config):
 
 def _load_runtime_config(config: str | None = None, workspace: str | None = None) -> Config:
     """Load config and optionally override the active workspace."""
-    from nanobot.config.loader import load_config, set_config_path
+    from nanobot.config.loader import load_config, set_config_path, was_backup_used
 
     config_path = None
     if config:
@@ -456,6 +456,18 @@ def _load_runtime_config(config: str | None = None, workspace: str | None = None
         console.print(f"[dim]Using config: {config_path}[/dim]")
 
     loaded = load_config(config_path)
+    
+    # Check if backup config was used and create marker file for agent notification
+    if was_backup_used():
+        console.print("[yellow]⚠ Config was corrupted - restored from backup![/yellow]")
+        try:
+            marker_path = loaded.workspace_path / ".config_restored"
+            marker_path.parent.mkdir(parents=True, exist_ok=True)
+            marker_path.write_text("Config was restored from backup on startup.\n")
+            console.print(f"[dim]Marker file created: {marker_path}[/dim]")
+        except Exception as e:
+            console.print(f"[red]Failed to create marker file: {e}[/red]")
+    
     _warn_deprecated_config_keys(config_path)
     if workspace:
         loaded.agents.defaults.workspace = workspace
