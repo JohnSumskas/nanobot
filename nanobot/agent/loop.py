@@ -450,6 +450,9 @@ class AgentLoop:
         if message_tool := self.tools.get("message"):
             if isinstance(message_tool, MessageTool):
                 message_tool.start_turn()
+        if speak_tool := self.tools.get("speak"):
+            if hasattr(speak_tool, "start_turn"):
+                speak_tool.start_turn()
 
         history = session.get_history(max_messages=0)
         initial_messages = self.context.build_messages(
@@ -483,7 +486,10 @@ class AgentLoop:
         self.sessions.save(session)
         self._schedule_background(self.memory_consolidator.maybe_consolidate_by_tokens(session))
 
+        # Suppress text response if message or speak tool already sent content in this turn
         if (mt := self.tools.get("message")) and isinstance(mt, MessageTool) and mt._sent_in_turn:
+            return None
+        if (st := self.tools.get("speak")) and hasattr(st, "_sent_in_turn") and st._sent_in_turn:
             return None
 
         preview = final_content[:120] + "..." if len(final_content) > 120 else final_content

@@ -34,12 +34,17 @@ class SpeakTool(Tool):
         self._voice = voice
         self._model = model
         self._response_format = response_format
+        self._sent_in_turn: bool = False
 
     def set_context(self, channel: str, chat_id: str, message_id: str | None = None) -> None:
         """Set the current message context."""
         self._default_channel = channel
         self._default_chat_id = chat_id
         self._default_message_id = message_id
+
+    def start_turn(self) -> None:
+        """Reset per-turn send tracking."""
+        self._sent_in_turn = False
 
     def set_send_callback(self, callback: Callable[[OutboundMessage], Awaitable[None]]) -> None:
         """Set the callback for sending messages."""
@@ -128,6 +133,8 @@ class SpeakTool(Tool):
         )
         try:
             await self._send_callback(msg)
+            if channel == self._default_channel and chat_id == self._default_chat_id:
+                self._sent_in_turn = True
             return f"Voice message sent ({len(text)} chars, voice={selected_voice})"
         except Exception as e:
             return f"Error: Failed to send voice message: {e}"
