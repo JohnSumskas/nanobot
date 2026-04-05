@@ -22,6 +22,7 @@ from nanobot.channels.base import BaseChannel
 from nanobot.config.paths import get_media_dir
 from nanobot.config.schema import Base
 from nanobot.security.network import validate_url_target
+from nanobot.utils.audio import convert_audio
 from nanobot.utils.helpers import split_message
 
 TELEGRAM_MAX_MESSAGE_LEN = 4000  # Telegram message character limit
@@ -390,7 +391,18 @@ class TelegramChannel(BaseChannel):
         # Send media files
         for media_path in (msg.media or []):
             try:
-                media_type = self._get_media_type(media_path)
+                # Convert MP3 to OGG/Opus for better Telegram compatibility
+                processed_path = media_path
+                if media_path.lower().endswith(".mp3"):
+                    logger.debug("Converting MP3 to OGG: {}", media_path)
+                    converted = await convert_audio(media_path, output_format="ogg")
+                    if converted:
+                        processed_path = converted
+                        logger.debug("MP3 conversion successful: {}", converted)
+                    else:
+                        logger.warning("MP3 conversion failed, attempting to send original")
+                
+                media_type = self._get_media_type(processed_path)
                 sender = {
                     "photo": self._app.bot.send_photo,
                     "voice": self._app.bot.send_voice,
@@ -399,20 +411,20 @@ class TelegramChannel(BaseChannel):
                 param = "photo" if media_type == "photo" else media_type if media_type in ("voice", "audio") else "document"
 
                 # Telegram Bot API accepts HTTP(S) URLs directly for media params.
-                if self._is_remote_media_url(media_path):
-                    ok, error = validate_url_target(media_path)
+                if self._is_remote_media_url(processed_path):
+                    ok, error = validate_url_target(processed_path)
                     if not ok:
                         raise ValueError(f"unsafe media URL: {error}")
                     await self._call_with_retry(
                         sender,
                         chat_id=chat_id,
-                        **{param: media_path},
+                        **{param: processed_path},
                         reply_parameters=reply_params,
                         **thread_kwargs,
                     )
                     continue
 
-                with open(media_path, "rb") as f:
+                with open(processed_path, "rb") as f:
                     await sender(
                         chat_id=chat_id,
                         **{param: f},

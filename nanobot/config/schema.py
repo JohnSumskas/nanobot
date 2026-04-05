@@ -129,6 +129,17 @@ class ExecToolConfig(Base):
     timeout: int = 60
     path_append: str = ""
 
+
+class TTSConfig(Base):
+    """Kokoro TTS service configuration."""
+
+    enabled: bool = False
+    url: str = "http://localhost:8880"
+    voice: str = "af_bella"
+    model: str = "kokoro"
+    response_format: str = "opus"
+
+
 class MCPServerConfig(Base):
     """MCP server connection configuration (stdio or HTTP)."""
 
@@ -146,6 +157,7 @@ class ToolsConfig(Base):
 
     web: WebToolsConfig = Field(default_factory=WebToolsConfig)
     exec: ExecToolConfig = Field(default_factory=ExecToolConfig)
+    tts: TTSConfig = Field(default_factory=TTSConfig)
     restrict_to_workspace: bool = False  # If true, restrict all tool access to workspace directory
     mcp_servers: dict[str, MCPServerConfig] = Field(default_factory=dict)
 
